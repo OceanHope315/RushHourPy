@@ -1845,7 +1845,7 @@ class Game:
         self._screen.blit(footer_surf, r_footer)
 
         start_x = panel.centerx - total_btns_w // 2
-        y_btns = C.WINDOW_HEIGHT // 2 + 115
+        y_btns = C.WINDOW_HEIGHT // 2 + 70
 
         if not self._result_buttons:
             for i, (key, label) in enumerate(button_specs):
