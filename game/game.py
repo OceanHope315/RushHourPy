@@ -71,6 +71,7 @@ class WinStars:
 
 class Game:
     """Core game class managing all game logic, UI, states and rendering."""
+
     def __init__(self) -> None:
         # Audio instance
         self.audio = None
@@ -95,7 +96,7 @@ class Game:
         self._selected_id: str | None = None
         self._remove_active = False
         self._remove_remain = 3
-        
+
         # Game progress tracking
         self._steps = 0
         self._elapsed_ms = 0
@@ -103,34 +104,34 @@ class Game:
         self._remaining_time_ms = 0
         self._step_limit = 0
         self._remaining_steps = 0
-        
+
         # Game result flags
         self._won = False
         self._failed = False
-        
+
         # Game mode and UI state
         self._mode = C.MODE_NORMAL
         self._state_name = "MENU"  # "MENU" or "LEVEL_SELECT" or "PLAYING" or "PAUSED"
-        
+
         # Animation states
         self._move_anim: MoveAnimation | None = None
         self._shake_anim: ShakeAnimation | None = None
-        
+
         # Level progress tracking
         self._best_steps_by_level: dict[int, int] = {}
         self._best_stars_by_level: dict[int, int] = {}
         self._unlocked_levels = 1
-        
+
         # Status message display
         self._status_text = ""
         self._status_ms_left = 0
-        
+
         # Save and statistics
         self._save_manager = SaveManager()
         self._total_remove_used = 0
         self._total_removed_vehicles = 0
         self._challenge_clears: dict[str, bool] = {}
-        
+
         # Undo system
         self._undo_stack: list[UndoState] = []
         self._remove_uses_this_level = 0
@@ -183,7 +184,8 @@ class Game:
             self._board_bg,
             (C.BOARD_PIXEL_W, C.BOARD_PIXEL_H)
         )
-        self._board_frame = pygame.image.load(C.BOARD_FRAME_PATH).convert_alpha()
+        self._board_frame = pygame.image.load(
+            C.BOARD_FRAME_PATH).convert_alpha()
         self._board_frame = pygame.transform.smoothscale(
             self._board_frame,
             (
@@ -191,7 +193,6 @@ class Game:
                 C.BOARD_PIXEL_H + C.BOARD_FRAME_PADDING * 2,
             )
         )
-
 
         self._game_bg = pygame.image.load(C.GAME_BG_PATH).convert()
         self._game_bg = pygame.transform.smoothscale(
@@ -237,7 +238,7 @@ class Game:
 
     def _load_level(self, index: int, mode: str = C.MODE_NORMAL) -> None:
         """Switch to a level and reset steps, victory status and selection.
-        
+
         Args:
             index: Target level index to load
             mode: Game mode to initialize
@@ -281,7 +282,7 @@ class Game:
 
     def _set_status(self, text: str, duration_ms: int = 2200, color=C.COLOR_TITLE2) -> None:
         """Display temporary status message on the screen.
-        
+
         Args:
             text: Message content to display
             duration_ms: Display duration in milliseconds
@@ -293,7 +294,7 @@ class Game:
 
     def _build_save_payload(self) -> dict:
         """Construct complete save data dictionary.
-        
+
         Returns:
             Dictionary containing all game state for saving
         """
@@ -340,7 +341,7 @@ class Game:
 
     def _save_game(self) -> bool:
         """Save current game state to disk.
-        
+
         Returns:
             True if save succeeded, False otherwise
         """
@@ -358,7 +359,7 @@ class Game:
 
     def _save_metadata_only_preserving_progress(self) -> bool:
         """Save global progress without overwriting current level state.
-        
+
         Returns:
             True if save succeeded
         """
@@ -394,7 +395,7 @@ class Game:
 
     def _save_without_progress(self) -> bool:
         """Save metadata and clear current level progress after victory.
-        
+
         Returns:
             True if save succeeded
         """
@@ -456,7 +457,7 @@ class Game:
 
     def _apply_save_data(self, data: dict) -> bool:
         """Apply loaded save data to game state.
-        
+
         Args:
             data: Save data dictionary
         Returns:
@@ -616,7 +617,7 @@ class Game:
 
     def _challenge_time_limit_seconds(self, level_index: int) -> int:
         """Get time limit for challenge mode.
-        
+
         Args:
             level_index: Current level index
         Returns:
@@ -626,7 +627,7 @@ class Game:
 
     def _challenge_key(self, level_index: int, mode: str) -> str:
         """Generate unique key for challenge completion tracking.
-        
+
         Args:
             level_index: Level index
             mode: Game mode
@@ -645,7 +646,7 @@ class Game:
 
     def _challenge_step_limit(self, level_index: int) -> int:
         """Get step limit for step challenge mode.
-        
+
         Args:
             level_index: Current level index
         Returns:
@@ -655,7 +656,7 @@ class Game:
 
     def _set_mode(self, mode: str) -> None:
         """Set game mode and reset limits.
-        
+
         Args:
             mode: Target game mode
         """
@@ -667,7 +668,7 @@ class Game:
 
     def _is_new_best_steps(self) -> bool:
         """Check if current steps are a new record for the level.
-        
+
         Returns:
             True if new best step count
         """
@@ -678,7 +679,7 @@ class Game:
 
     def _get_win_stars(self) -> WinStars:
         """Calculate star rating for current level completion.
-        
+
         Returns:
             WinStars object with star status
         """
@@ -718,7 +719,7 @@ class Game:
     def _go_next_level(self) -> None:
         """Navigate to the next unlocked level."""
         if self._level_index + 1 >= self._unlocked_levels:
-            self._set_status("Next level is locked.")
+            self._set_status("This is the last level.")
             return
         self._load_level(self._level_index + 1)
 
@@ -731,6 +732,10 @@ class Game:
 
     def _result_go_previous_level(self) -> None:
         """Navigate to previous level from result screen."""
+        # Do not navigate if on first level
+        if self._level_index <= 0:
+            self._set_status("Already at the first level.")
+            return
         self._won = False
         self._failed = False
         self._selected_id = None
@@ -740,6 +745,10 @@ class Game:
 
     def _result_go_next_level(self) -> None:
         """Navigate to next level from result screen."""
+        # Do not navigate if on last level
+        if self._level_index >= level_count() - 1:
+            self._set_status("This is the last level.")
+            return
         self._won = False
         self._failed = False
         self._selected_id = None
@@ -749,7 +758,7 @@ class Game:
 
     def _try_restore_save_for(self, level_index: int, mode: str) -> None:
         """Try to restore saved progress for specific level and mode.
-        
+
         Args:
             level_index: Target level index
             mode: Target game mode
@@ -769,7 +778,7 @@ class Game:
 
     def _handle_events(self) -> bool:
         """Process all Pygame input events.
-        
+
         Returns:
             True to continue game, False to quit
         """
@@ -838,12 +847,15 @@ class Game:
 
         if self._won:
             if self._mode == C.MODE_NORMAL:
-                button_specs = [
-                    ("prev", "Prev"),
-                    ("reset", "Reset"),
-                    ("next", "Next"),
-                    ("exit", "Exit"),
-                ]
+                button_specs = []
+                # Add prev button only if not on first level
+                if self._level_index > 0:
+                    button_specs.append(("prev", "Prev"))
+                button_specs.append(("reset", "Reset"))
+                # Add next button only if not on last level
+                if self._level_index < level_count() - 1:
+                    button_specs.append(("next", "Next"))
+                button_specs.append(("exit", "Exit"))
             else:
                 button_specs = [
                     ("reset", "Reset"),
@@ -860,7 +872,8 @@ class Game:
         btn_w = 110
         btn_h = 40
         gap = 10
-        total_btns_w = len(button_specs) * btn_w + (len(button_specs) - 1) * gap
+        total_btns_w = len(button_specs) * btn_w + \
+            (len(button_specs) - 1) * gap
 
         start_x = C.WINDOW_WIDTH // 2 - total_btns_w // 2
         y_btns = C.WINDOW_HEIGHT // 2 + 115
@@ -875,7 +888,7 @@ class Game:
 
     def _on_mouse_down(self, pos: tuple[int, int]) -> None:
         """Handle mouse click input during gameplay.
-        
+
         Args:
             pos: Mouse click coordinates (x, y)
         """
@@ -926,7 +939,7 @@ class Game:
                     self._remove_active = True
                     self._selected_id = None
             return
-        
+
         if action == "hint":
             hint = RushHourHint.get_hint(self._state)
             self._set_status(hint, duration_ms=3000)
@@ -978,7 +991,7 @@ class Game:
 
     def _on_key_down(self, key: int) -> None:
         """Handle keyboard input during gameplay.
-        
+
         Args:
             key: Pygame key constant
         """
@@ -1004,7 +1017,7 @@ class Game:
 
     def _update(self, dt: int) -> None:
         """Update game state every frame.
-        
+
         Args:
             dt: Delta time in milliseconds
         """
@@ -1058,7 +1071,7 @@ class Game:
 
     def _try_click_move_to_cell(self, row: int, col: int) -> None:
         """Attempt to move selected vehicle to target grid cell.
-        
+
         Args:
             row: Target cell row
             col: Target cell column
@@ -1106,7 +1119,7 @@ class Game:
         self, vehicle_id: str, dr: int, dc: int, max_steps: int | None = None
     ) -> None:
         """Start vehicle movement animation with collision checking.
-        
+
         Args:
             vehicle_id: ID of vehicle to move
             dr: Row direction (-1, 0, 1)
@@ -1201,7 +1214,7 @@ class Game:
 
     def _screen_pos_to_cell(self, pos: tuple[int, int]) -> tuple[int, int] | None:
         """Convert screen coordinates to grid cell coordinates.
-        
+
         Args:
             pos: Screen (x, y) position
         Returns:
@@ -1286,7 +1299,7 @@ class Game:
 
     def _show_invalid_move(self, vehicle_id: str | None = None, dr: int = 0, dc: int = 0) -> None:
         """Play feedback for invalid vehicle movement.
-        
+
         Args:
             vehicle_id: ID of vehicle to shake
             dr: Row shake direction
@@ -1335,7 +1348,7 @@ class Game:
 
     def _cell_rect_pixels(self, row: int, col: int) -> pygame.Rect:
         """Get pixel rectangle for a grid cell.
-        
+
         Args:
             row: Cell row
             col: Cell column
@@ -1352,7 +1365,7 @@ class Game:
 
     def _current_slide_offset(self, vehicle: Vehicle) -> tuple[float, float]:
         """Calculate smooth movement offset for animation.
-        
+
         Args:
             vehicle: Target vehicle instance
         Returns:
@@ -1371,7 +1384,7 @@ class Game:
 
     def _vehicle_draw_rect(self, vehicle: Vehicle) -> pygame.Rect:
         """Get render rectangle for vehicle with animation offset.
-        
+
         Args:
             vehicle: Target vehicle instance
         Returns:
@@ -1415,7 +1428,6 @@ class Game:
             self._board_frame,
             (frame_x, frame_y)
         )
-
 
     def _draw_vehicles(self) -> None:
         """Render all vehicles with animations and selection highlights."""
@@ -1464,7 +1476,7 @@ class Game:
 
     def _load_block_image_files(self) -> dict[int, list[str]]:
         """Load vehicle block images grouped by length.
-        
+
         Returns:
             Dictionary mapping vehicle length to image file list
         """
@@ -1501,7 +1513,7 @@ class Game:
 
     def _block_image_name(self, vehicle: Vehicle) -> str:
         """Select image for vehicle based on length and ID.
-        
+
         Args:
             vehicle: Target vehicle instance
         Returns:
@@ -1524,7 +1536,7 @@ class Game:
             size: tuple[int, int],
     ) -> pygame.Surface | None:
         """Load and cache vehicle block image with rotation.
-        
+
         Args:
             vehicle: Target vehicle instance
             size: Render size tuple (width, height)
@@ -1610,7 +1622,7 @@ class Game:
                 content_surfs.append(line2)
             else:
                 line2 = None
-            
+
             button_specs = [
                 ("prev", "Prev"),
                 ("reset", "Reset"),
@@ -1628,9 +1640,11 @@ class Game:
         btn_w = 110
         btn_h = 40
         gap = 10
-        total_btns_w = len(button_specs) * btn_w + (len(button_specs) - 1) * gap
-        
-        panel_content_width = max([s.get_width() for s in content_surfs] + [total_btns_w, 240])
+        total_btns_w = len(button_specs) * btn_w + \
+            (len(button_specs) - 1) * gap
+
+        panel_content_width = max([s.get_width()
+                                  for s in content_surfs] + [total_btns_w, 240])
         panel_w = panel_content_width + 80
 
         panel_h = 24 + line1.get_height() + 20
@@ -1712,7 +1726,7 @@ class Game:
             y_btns = C.WINDOW_HEIGHT // 2 + 115
         else:
             y_btns = C.WINDOW_HEIGHT // 2 + 70
-        
+
         if not self._result_buttons:
             for i, (key, label) in enumerate(button_specs):
                 bx = start_x + i * (btn_w + gap)
@@ -1723,13 +1737,17 @@ class Game:
                 )
 
                 if key == "prev":
-                    self._result_buttons[key].set_colors((20,160,60),(20,160,60),(40,23,20),(1,2,0))
+                    self._result_buttons[key].set_colors(
+                        (20, 160, 60), (20, 160, 60), (40, 23, 20), (1, 2, 0))
                 elif key == "reset":
-                    self._result_buttons[key].set_colors((245,206,83),(245,206,83),(40,23,20),(1,2,0))
+                    self._result_buttons[key].set_colors(
+                        (245, 206, 83), (245, 206, 83), (40, 23, 20), (1, 2, 0))
                 elif key == "next":
-                    self._result_buttons[key].set_colors((240,117,46),(240,117,46),(40,23,20),(1,2,0))
+                    self._result_buttons[key].set_colors(
+                        (240, 117, 46), (240, 117, 46), (40, 23, 20), (1, 2, 0))
                 elif key == "exit":
-                    self._result_buttons[key].set_colors((200, 200, 200),(200, 200, 200),(40,23,20),(1,2,0))
+                    self._result_buttons[key].set_colors(
+                        (200, 200, 200), (200, 200, 200), (40, 23, 20), (1, 2, 0))
 
         mouse = pygame.mouse.get_pos()
         for btn in self._result_buttons.values():
@@ -1768,7 +1786,8 @@ class Game:
         btn_w = 110
         btn_h = 40
         gap = 10
-        total_btns_w = len(button_specs) * btn_w + (len(button_specs) - 1) * gap
+        total_btns_w = len(button_specs) * btn_w + \
+            (len(button_specs) - 1) * gap
 
         panel_content_width = max(
             [line1.get_width(), reason_surf.get_width(), footer_surf.get_width(), 240, total_btns_w] +
@@ -1776,7 +1795,7 @@ class Game:
         )
 
         panel_w = panel_content_width + 80
-        
+
         stats_height = sum(s.get_height() for s in stat_surfs) + \
             (len(stat_surfs) - 1) * 6 if stat_surfs else 0
 
@@ -1827,7 +1846,7 @@ class Game:
 
         start_x = panel.centerx - total_btns_w // 2
         y_btns = C.WINDOW_HEIGHT // 2 + 115
-        
+
         if not self._result_buttons:
             for i, (key, label) in enumerate(button_specs):
                 bx = start_x + i * (btn_w + gap)
@@ -1837,10 +1856,12 @@ class Game:
                     self._font_btn
                 )
                 if key == "exit":
-                    self._result_buttons[key].set_colors((20,160,60),(20,160,60),(40,23,20),(1,2,0))
+                    self._result_buttons[key].set_colors(
+                        (20, 160, 60), (20, 160, 60), (40, 23, 20), (1, 2, 0))
                 elif key == "reset":
-                    self._result_buttons[key].set_colors((245,206,83),(245,206,83),(40,23,20),(1,2,0))
-                
+                    self._result_buttons[key].set_colors(
+                        (245, 206, 83), (245, 206, 83), (40, 23, 20), (1, 2, 0))
+
         mouse = pygame.mouse.get_pos()
         for btn in self._result_buttons.values():
             btn.draw(self._screen, mouse)
@@ -1849,7 +1870,7 @@ class Game:
         self, center_x: int, top: int, stars_on: tuple[bool, bool, bool]
     ) -> None:
         """Render star rating row.
-        
+
         Args:
             center_x: Center X coordinate
             top: Top Y coordinate
@@ -1864,7 +1885,7 @@ class Game:
 
     def _draw_star(self, cx: int, cy: int, outer_radius: int, is_on: bool) -> None:
         """Render single star icon.
-        
+
         Args:
             cx: Center X coordinate
             cy: Center Y coordinate
@@ -1938,6 +1959,7 @@ class Game:
             self._draw_fail_overlay()
 
         if self._status_text and self._status_ms_left > 0:
-            surf = self._status_font.render(self._status_text, True, (0,0,0))
-            rect = surf.get_rect(center=(C.WINDOW_WIDTH//2, C.WINDOW_HEIGHT - 40))
+            surf = self._status_font.render(self._status_text, True, (0, 0, 0))
+            rect = surf.get_rect(
+                center=(C.WINDOW_WIDTH//2, C.WINDOW_HEIGHT - 40))
             self._screen.blit(surf, rect)
