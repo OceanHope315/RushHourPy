@@ -256,7 +256,7 @@ class Game:
         self._won = False
         self._selected_id = None
         self._move_anim = None
-        self.__remove_active = False
+        self._remove_active = False
         self._remove_remain = 3
         self._undo_stack.clear()
         self._remove_uses_this_level = 0
@@ -504,7 +504,7 @@ class Game:
                 mode = C.MODE_NORMAL
             self._mode = mode
 
-            self.__remove_active = max(0, int(data.get("remove_remain", 3)))
+            self._remove_active = max(0, int(data.get("remove_remain", 3)))
 
             if "time_limit_ms" in data:
                 self._time_limit_ms = int(data["time_limit_ms"])
